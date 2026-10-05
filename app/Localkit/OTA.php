@@ -18,13 +18,21 @@ class OTA
 
     public function getAvailable(Device $device): ?array
     {
+        if (in_array($device->device_type, $this->disabledDeviceTypes(), true)) {
+            return null;
+        }
+
         $currentFirmware = $device->firmware;
         $available = $this->firmwareByDevice($device);
         if (is_null($available)) {
             return null;
         }
 
-        return $available['version'] >= $currentFirmware ? $available : null;
+        // Strictly newer only: an equal version must never re-offer, or the
+        // device repeats the same internal reflash forever (a d3 was lost to
+        // exactly this - it re-wrote its active slot with the same image and
+        // the slot copy aborted mid-write).
+        return version_compare((string) $available['version'], (string) $currentFirmware, '>') ? $available : null;
     }
 
     public function isAvailable(Device $device): bool
@@ -67,5 +75,23 @@ class OTA
     {
         $repository = $this->loadRepository();
         return $repository->filter(fn($item) => $item['device_type'] === $device->device_type)->first();
+    }
+
+    /**
+     * Device types whose OTA offers are suppressed entirely
+     * (LOCALKIT_OTA_DISABLED_TYPES). Comma separated; empty string disables
+     * nothing. Meant for device types whose repository entry has never been
+     * validated on hardware - a failed internal reflash can leave the
+     * device unbootable, with no recovery but serial access.
+     */
+    private function disabledDeviceTypes(): array
+    {
+        $raw = trim((string) config('localkit.ota_disabled_types', ''));
+
+        if ($raw === '') {
+            return [];
+        }
+
+        return array_filter(array_map('trim', explode(',', $raw)));
     }
 }

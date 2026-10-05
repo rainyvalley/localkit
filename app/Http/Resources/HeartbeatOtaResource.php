@@ -24,11 +24,19 @@ class HeartbeatOtaResource extends PetkitHttpResource
 
         $firmware = app(OTA::class)->getAvailable($this->resource);
 
+        if (is_null($firmware)) {
+            // No offer for this device right now (unknown type, disabled
+            // type, or no newer version): answer with the plain heartbeat
+            // shape instead of pointing the device at a firmware id that
+            // may belong to a different product entirely.
+            return (new HeartbeatResource($this->resource))->toArray($request);
+        }
+
         $data = [
             'content' => json_encode([
                 "msgType" => 0,
                 "payload" => [
-                    "firmwareId" => $firmware['id'] ?? 33
+                    "firmwareId" => $firmware['id']
                 ],
                 "type" => "ota",
                 "timestamp" => $ts

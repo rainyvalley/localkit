@@ -72,6 +72,15 @@ class DeviceActions
                 ->label('Check OTA')
                 ->visible(fn(Device $record) => (bool) $record->mqtt_connected && !($record->isNextGen() ?? false))
                 ->mountUsing(function (Schema $schema, Device $record) {
+                    if (in_array($record->device_type, config('localkit.ota_disabled_types', []), true)) {
+                        Notification::make()
+                            ->danger()
+                            ->title('OTA disabled for this device type')
+                            ->body('Its repository entry has not been validated on hardware. Override with LOCALKIT_OTA_DISABLED_TYPES if you accept the risk.')
+                            ->send();
+                        throw new Halt();
+                    }
+
                     $available = app(OTA::class)->getAvailable($record);
 
                     if (!$available) {

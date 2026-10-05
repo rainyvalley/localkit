@@ -6,6 +6,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | OTA gate
+    |--------------------------------------------------------------------------
+    |
+    | Device types Localkit never sends an OTA offer for (comma separated in
+    | LOCALKIT_OTA_DISABLED_TYPES). 'd3' by default: that device type's
+    | repository entry has never been validated on hardware, and a failed
+    | internal reflash there can leave the unit unbootable - with nothing
+    | but serial access as a way back in.
+    |
+    */
+    'ota_disabled_types' => env('LOCALKIT_OTA_DISABLED_TYPES', 'd3'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cleanup Retention (see app:cleanup-activity-log)
     |--------------------------------------------------------------------------
     |
