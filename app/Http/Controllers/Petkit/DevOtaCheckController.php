@@ -20,6 +20,13 @@ class DevOtaCheckController extends Controller
         $deviceId = PetkitHeader::petkitId($request->header('X-Device'));
         $device = Device::wherePetkitId($deviceId)->first();
 
+        // Serve the offer on version-difference alone (the Gate), not the ota_state flag:
+        // ota_state also forces the iot-info response to noresolv, which boot-loops devices
+        // whose provisioning is already complete. Mirrors the Heartbeat path's gate logic.
+        if ($device && app(\App\Localkit\OTA::class)->getAvailable($device)) {
+            return new DevOtaResource($device);
+        }
+
         if($device?->ota_state) {
             return new DevOtaResource($device);
         }

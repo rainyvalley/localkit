@@ -18,11 +18,15 @@ class DevIotDeviceInfoResource extends PetkitHttpResource
     {
         $iotInstanceId = 'iot-600a5gmp';
 
-        $mqtt =  sprintf('%s.mqtt.iothub.aliyuncs.com', $iotInstanceId);
+        // The device reaches the Localkit broker via the per-device subdomain record
+        // ({subdomain}.iot-as-mqtt.eu-central-1.aliyuncs.com -> broker IP in DNS), the same
+        // host shape DevOnlyIotDeviceInfoResource serves. The old .mqtt.iothub. host has no
+        // such record and routes MQTT to the unreachable Aliyun instance instead.
+        $mqtt = sprintf('%s.iot-as-mqtt.eu-central-1.aliyuncs.com', $this->mqtt_subdomain ?? $iotInstanceId);
         $productKey = $this->mqtt_subdomain ?? Str::of(md5($this->petkit_id))->substr(0, 10);
-        if($this->ota_state) {
-            $mqtt = 'noresolv.localkit.io';
-            $productKey = 'noresolv-localkit-io';
+        if ($this->mqttShouldFail()) {
+            $mqtt = self::MQTT_NO_RESOLV;
+            $productKey = self::MQTT_NO_RESOLV;
         }
         return [
             'id' => $this->petkit_id,
